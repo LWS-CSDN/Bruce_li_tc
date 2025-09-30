@@ -8,6 +8,10 @@ twine upload dist/*
 $env:PYTHONUTF8=1
 twine upload dist/*
 
+# 创建并推送第一个标签来测试自动化发布
+git tag v0.7.5
+git push origin v0.7.5
+
 
 1.django和fastapi的中间件
 2.路由分发vs

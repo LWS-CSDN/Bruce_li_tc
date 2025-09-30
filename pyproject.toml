@@ -1,12 +1,11 @@
-
 [project]
 name = "bruce-li-tc"
 dynamic = ["version"]
 authors = [
     {name = "Bruce Li", email = "bruce.li@example.com"}
 ]
-description = "Advanced Python utilities for time and data processing"
-readme = {file = "CHANGELOG.md", content-type = "text/markdown", encoding = "utf-8"}
+description = "Advanced Python utilities for WeChat automation, time and data processing"
+readme = {file = "README.md", content-type = "text/markdown", encoding = "utf-8"}
 requires-python = ">=3.8"
 license = {text = "MIT"}
 
@@ -19,7 +18,7 @@ dependencies = [
     "redis==6.2.0",
     "datetime==5.5",
     "dbutils==3.1.1",
-	"pyqt6==6.9.1",
+    "pyqt6==6.9.1",
     "playwright==1.54.0",
     "PyAutoGUI==0.9.54",
     "uiautomation==2.0.29",
@@ -27,15 +26,14 @@ dependencies = [
     "opencv-python==4.12.0.88"
 ]
 
-
 [project.urls]
 Homepage = "https://github.com/LWS-CSDN/Bruce_li_tc"
 Documentation = "https://github.com/LWS-CSDN/Bruce_li_tc#readme"
-Repository = "https://github.com/LWS-CSDN/Bruce_li_tc"
+Repository = "https://github.com/LWS-CSDN/Bruce_li_tc.git"
 Changelog = "https://github.com/LWS-CSDN/Bruce_li_tc/blob/main/CHANGELOG.md"
 
 [build-system]
-requires = ["setuptools>=64.0", "wheel"]
+requires = ["setuptools>=64.0", "wheel", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
@@ -46,30 +44,3 @@ where = ["src"]
 
 [tool.setuptools_scm]
 write_to = "src/bruce_li_tc/_version.py"
-
-#[tool.setuptools.dynamic]
-#version = {attr = "bruce_li_tc._version.__version__"}
-
-# 代码质量工具配置
-[tool.black]
-line-length = 88
-target-version = ['py38']
-
-[tool.flake8]
-max-line-length = 88
-extend-ignore = ["E203", "W503"]
-
-[tool.poetry.build]
-exclude = [
-    "venv/",
-    ".venv/",
-    "env/",
-    "__pycache__/",
-    "*.pyc",
-    ".gitignore",
-    ".vscode/",
-    ".idea/",
-    "dist/",
-    "build/",
-    "*.egg-info/"
-]
