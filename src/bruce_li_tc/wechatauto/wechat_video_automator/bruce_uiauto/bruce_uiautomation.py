@@ -326,22 +326,43 @@ class WeChatAutomator:
         """
         微信窗口和微信窗格独立分开的，微信主页面就是窗口，打开其他页面就是窗格
         """
-        self.WECHAT_WINDOW = None#微信窗口
-        self.WECHAT_PANE=None#微信窗格
-        self.TEXT_CONTROL= None#视频号里面的"动态"文本控件
-        self.IS_GLOBAL_SEARCH=False #是否全局搜索
-        self.SEARCH_KEYWORD=None#视频号搜索关键字
+        self.WECHAT_WINDOW = None                               #微信窗口
+        self.WECHAT_PANE=None                                   #微信窗格
+        self.TEXT_CONTROL= None                                 #视频号里面的"动态"文本控件
+        self.IS_GLOBAL_SEARCH=False                             #是否全局搜索
+        self.SEARCH_KEYWORD=None                                #视频号搜索关键字
         self.AutomatorUtils=Automator_utils()
         self.WeChat_Auto_utils=WeChat_Auto_utils()
         self.WeChat_VideoData_utils=WeChat_VideoData_utils()
-        self.comment_callback = None # 初始化回调函数为None
+        self.comment_callback = None                            #初始化回调函数为None
         self.scroll_video_comment_time=scroll_video_comment_time#评论滚动速度
-        self.back_click_model=back_click_model #是否后台点击
-        self.FairSelector_class=None #随机选择器类
-        self.COMMENT_LIST=[] #想要评论的,评论列表
-        self.NEXT_SIBLING=None #滚动评论所需的参数
-        self.COMMENT_KEY=None #评论中带这些关键字的
+        self.back_click_model=back_click_model                  #是否后台点击
+        self.FairSelector_class=None                            #随机选择器类
+        self.COMMENT_LIST=[]                                    #想要评论的,评论列表
+        self.NEXT_SIBLING=None                                  #滚动评论所需的参数
+        self.COMMENT_KEY=None                                   #评论中带这些关键字的
+        self.REPLAY_COUNT = 0                                   #回复评论的数量
+        self.VIDEO_LIST_DATA_CONFIG = {}
+        self.CONTINUE_SRCOLL_CONTORL=  {}                       #不需要滚动的控件
 
+    def video_list_data_config(self,
+                            skip_comment,
+                            comment_key,
+                            comment_list,
+                            comment_day,
+                            comment_datetime,
+                            Interval_count,
+                            Interval_seconds):
+        """
+        给这个函数设置全局配置
+        """
+        self.VIDEO_LIST_DATA_CONFIG["skip_comment"]=skip_comment
+        self.VIDEO_LIST_DATA_CONFIG["comment_key"] = comment_key
+        self.VIDEO_LIST_DATA_CONFIG["comment_list"] = comment_list
+        self.VIDEO_LIST_DATA_CONFIG["comment_day"] = comment_day
+        self.VIDEO_LIST_DATA_CONFIG["comment_datetime"] = comment_datetime
+        self.VIDEO_LIST_DATA_CONFIG["Interval_count"] = Interval_count
+        self.VIDEO_LIST_DATA_CONFIG["Interval_seconds"] = Interval_seconds
     def start_webchat(self,wechat_path: str=r"C:\Program Files\Tencent\Weixin\Weixin.exe") -> Optional[int]:
         """
         启动微信并返回其进程PID
@@ -494,7 +515,14 @@ class WeChatAutomator:
         except Exception as e:
             library_logger.warning(f"判断视频号加载完成时发生错误: {e}")
             return False
-    def video_list_data(self,skip_comment=False,comment_list=None,comment_key=None)->list:
+    def video_list_data(self,
+                        skip_comment,
+                        comment_key,
+                        comment_list,
+                        comment_day,
+                        comment_datetime,
+                        Interval_count,
+                        Interval_seconds)->list:
         """
         视频号-搜索关键字-判断加载是否完成-找到视频列表
         skip_comment是否跳过不获取评论数据，默认不获取评论数据，只获取视频标题的数据
@@ -506,6 +534,15 @@ class WeChatAutomator:
             self.COMMENT_LIST=comment_list
             self.COMMENT_KEY=comment_key
             self.FairSelector_class=FairSelector(items=comment_list)
+            self.video_list_data_config(
+                skip_comment,
+                comment_key,
+                comment_list,
+                comment_day,
+                comment_datetime,
+                Interval_count,
+                Interval_seconds)
+
             parent_group = self.TEXT_CONTROL.GetParentControl()
             # # 2. 获取该父控件的下一个兄弟节点（我们推测它就是视频容器）
             target_video_group = parent_group.GetNextSiblingControl()
@@ -518,9 +555,6 @@ class WeChatAutomator:
         except Exception as e:
             library_logger.warning(f"判断视频号加载完成-找到视频列表时发生错误: {e}")
             return  []
-
-
-
     def video_item_scroll_click(self,target_video_group,skip_comment,comment_list,max_attempts=10):
         """
         视频号-搜索关键字-判断加载是否完成-找到视频列表-滚动-自动点击
@@ -533,6 +567,7 @@ class WeChatAutomator:
         video_data=[]
         while True:
             try:
+
                 # 对于第一个视频容器(max_sib == 0)，我们不需要获取下一个兄弟控件，因为temp已经是它了
                 # 对于后续的(max_sib >= 1)，我们需要获取下一个兄弟控件
                 attempt_count = 0  # 第几次滚动
@@ -604,7 +639,6 @@ class WeChatAutomator:
                 if max_sib > 666:
                     break
         return video_data
-
     def scroll_video_top(self):
         """
         搜索关键字页-快速滚动到最顶部
@@ -632,7 +666,6 @@ class WeChatAutomator:
                 time.sleep(0.1)
         except Exception as e:
             library_logger.warning(f"滚动操作失败: {str(e)}")
-
     def scroll_video_bottom(self):
         """
         搜索关键字页-滚动到最底部
@@ -659,8 +692,6 @@ class WeChatAutomator:
                 time.sleep(0.1)
         except Exception as e:
             library_logger.warning(f"滚动操作失败: {str(e)}")
-
-
     def scroll_video_container(self,search_keyword: str,model: str = "down"):
         """
         尝试滚动视频容器
@@ -915,7 +946,6 @@ class WeChatAutomator:
             library_logger.warning("单个视频标题报错",e)
         library_logger.info(f"结束获取视频标题和时间data:{data}")
         return data
-
     """
     单个视频评论
     """
@@ -1054,6 +1084,178 @@ class WeChatAutomator:
             return True
         except Exception as e:
             return False
+
+    def check_and_wait(self, reply_counter:int)->None:
+        """
+        检查回复数量，如果达到新的阈值倍数则等待指定时间
+        :param reply_counter: 当前回复数量
+        """
+        try:
+            threshold = self.VIDEO_LIST_DATA_CONFIG["Interval_count"]
+            wait_time = self.VIDEO_LIST_DATA_CONFIG["Interval_seconds"]
+
+            # 添加一个实例变量来记录上次等待时的倍数
+            if not hasattr(self, 'LAST_WAITED_MULTIPLE'):
+                self.LAST_WAITED_MULTIPLE = -1  # 初始化为-1，确保第一次能触发
+
+            # 计算当前倍数
+            current_multiple = reply_counter // threshold
+
+            # 只有当达到新的倍数时才等待
+            if reply_counter % threshold == 0 and reply_counter != 0 and current_multiple > self.LAST_WAITED_MULTIPLE:
+                library_logger.success(f"开始等待，当前回复数量为: {reply_counter}")
+                time.sleep(wait_time * 60)
+                # 更新上次等待的倍数
+                self.LAST_WAITED_MULTIPLE = current_multiple
+            else:
+                library_logger.debug(f"当前回复数量为: {reply_counter},无需等待")
+        except Exception as e:
+            library_logger.warning(f"等待时间发生错误: {e}")
+
+    def filter_required_comment_data(self,required_comment_data)->bool:
+        """
+        过滤7天内的数据，31天内的数据
+        :param required_comment_data:当前数据
+        :return:True就是可以，False就是不可以
+        """
+
+        # 检查评论创建时间是否存在
+        comment_create_time = required_comment_data.get("comment_create_time")
+        if comment_create_time is None:
+            return False
+        try:
+            # 处理时间格式：如果comment_create_time是字符串，转换为datetime对象
+            if isinstance(comment_create_time, str):
+                # 常见的时间字符串格式，可根据实际情况调整格式字符串
+                comment_create_time = datetime.strptime(
+                    comment_create_time,
+                    '%Y-%m-%d %H:%M:%S'  # 例如 "2023-09-25 14:30:00"
+                )
+
+            # 确保comment_create_time是datetime对象
+            if not isinstance(comment_create_time, datetime):
+                return False
+            #self.VIDEO_LIST_DATA_CONFIG["comment_datetime"] = datetime.now()
+            # 如果要用固定时间，应该这样写：
+
+            # 获取参考时间（当前时间）和时间间隔
+            now_date_time = datetime.strptime(self.VIDEO_LIST_DATA_CONFIG["comment_datetime"], "%Y-%m-%d %H:%M:%S")
+            time_space = int(self.VIDEO_LIST_DATA_CONFIG["comment_day"])  # 将字符串间隔转换为整数
+
+            # 计算时间边界：参考时间减去时间间隔（天数）
+            time_boundary = now_date_time - timedelta(days=time_space)
+
+            # 核心判断：评论时间是否在边界时间之后（即 within the last `time_space` days）
+            # 直接返回布尔表达式，避免冗余的if-else结构[1,3](@ref)
+            return comment_create_time >= time_boundary
+        except Exception as e:
+            # 时间格式解析错误或类型错误
+            print(f"时间解析错误: {e}")
+            return False
+
+    def continue_srcoll_contorl(self):
+        """
+        跳过滚动的控件
+        :return:
+        """
+        try:
+            if not self.CONTINUE_SRCOLL_CONTORL:
+                return True
+            else:
+                return False
+        except Exception as e:
+            library_logger.warning(f"跳过滚动控件发生错误: {e}")
+
+    def cat_author_name(self,control):
+        """
+        查看评论作者的名字
+        :param control:
+        :return:
+        """
+        try:
+            now_control_name=""
+            now_comment_author_name = control.GetPreviousSiblingControl().GetChildren()
+            for child in now_comment_author_name:
+                if child.ControlTypeName == "TextControl":
+                    now_control_name += child.Name
+            return now_control_name
+        except Exception as e:
+            library_logger.warning(f"获取作者名字发生错误: {e}")
+
+    def control_srcoll(self,temp_control,temp_next_control,temp_next_next_control,sum_comment_count):
+        """
+        控制滚动
+        :return:
+        """
+        # 检查控件是否在屏幕内
+        if (not self.is_control_visible(temp_control)) and self.continue_srcoll_contorl():
+            library_logger.debug(f"第{sum_comment_count + 1}条评论，控件是否在屏幕内{self.is_control_visible(temp_control)}',temp_control:'{temp_control}")
+            try:
+                temp_count=0
+                while True:
+                    if temp_count>15:
+                        break
+                    if self.is_control_visible(temp_control):
+                        break
+                    else:
+                        self.scroll_video_comment(self.NEXT_SIBLING)
+                    temp_count+=1
+                    time.sleep(0.1)
+            except Exception as e:
+                library_logger.warning(f"滚动发生错误: {e}")
+            library_logger.success(f"第{sum_comment_count + 1}条评论，控件是否在屏幕内{self.is_control_visible(temp_control)}',temp_control:'{temp_control}")
+        elif not self.continue_srcoll_contorl():
+            library_logger.debug(f"当前编辑过，等会轮到这个元素出来，再滚动temp_control{temp_control}")
+            library_logger.debug(f"self.CONTINUE_SRCOLL_CONTORL['name']:{self.CONTINUE_SRCOLL_CONTORL['name']}")
+            library_logger.debug(f"self.CONTINUE_SRCOLL_CONTORL['from']:{self.CONTINUE_SRCOLL_CONTORL['from']}")
+            library_logger.debug(f"self.CONTINUE_SRCOLL_CONTORL['date']:{self.CONTINUE_SRCOLL_CONTORL['date']}")
+
+            if self.CONTINUE_SRCOLL_CONTORL["mode"] == "1" and temp_control.Name == "作者":
+                library_logger.debug(f"处理作者评论,滚动的问题开始")
+                now_control_name = self.cat_author_name(temp_control)
+                now_control_from = temp_next_control.Name
+                now_control_date = temp_next_next_control.Name
+                continue_control_name = self.CONTINUE_SRCOLL_CONTORL["name"]
+                continue_control_from = self.CONTINUE_SRCOLL_CONTORL["from"]
+                continue_control_date = self.CONTINUE_SRCOLL_CONTORL["date"]
+                if now_control_from == continue_control_from and \
+                        now_control_date == continue_control_date and \
+                        now_control_name == continue_control_name:
+                    self.CONTINUE_SRCOLL_CONTORL = {}
+                    library_logger.debug(f"处理作者评论,滚动的问题,{self.CONTINUE_SRCOLL_CONTORL}")
+            elif self.CONTINUE_SRCOLL_CONTORL["mode"] == "2" and temp_next_control.Name != "":
+                library_logger.debug(f"处理其他用户评论,滚动的问题开始")
+                now_control_name = self.cat_author_name(temp_control)
+                now_control_from = temp_next_control.Name
+                now_control_date = temp_next_next_control.Name
+                continue_control_name = self.CONTINUE_SRCOLL_CONTORL["name"]
+                continue_control_from = self.CONTINUE_SRCOLL_CONTORL["from"]
+                continue_control_date = self.CONTINUE_SRCOLL_CONTORL["date"]
+                if now_control_name == continue_control_name and \
+                        now_control_from == continue_control_from and \
+                        now_control_date == continue_control_date:
+                    self.CONTINUE_SRCOLL_CONTORL = {}
+                    library_logger.debug(f" 处理其他用户评论,滚动的问题,{self.CONTINUE_SRCOLL_CONTORL}")
+            elif self.CONTINUE_SRCOLL_CONTORL["mode"] == "3" and temp_next_control.Name == "" and temp_next_next_control.Name == "":
+                library_logger.debug(f"处理自己评论,滚动的问题开始")
+                now_control_name = self.cat_author_name(temp_control)
+                now_control_date = temp_control.Name
+                continue_control_name = self.CONTINUE_SRCOLL_CONTORL["name"]
+                continue_control_date = self.CONTINUE_SRCOLL_CONTORL["date"]
+                if now_control_name == continue_control_name and now_control_date == continue_control_date:
+                    self.CONTINUE_SRCOLL_CONTORL = {}
+                    library_logger.debug(f"处理自己评论,滚动的问题,{self.CONTINUE_SRCOLL_CONTORL}")
+            else:
+                pass
+                # library_logger.debug(f"其他问题滚动开始")
+                # library_logger.debug(f"now_control_name{now_control_name}")
+                # library_logger.debug(f"now_control_date{now_control_date}")
+                # try:
+                #     library_logger.debug(f"continue_control_from{continue_control_from}")
+                # except Exception as e:
+                #     library_logger.warning(f"continue_control_from:{e}")
+
+
     def video_item_comment(self,next_sibling,video_data,comment_list:list=None,comment_key:list=None):
         """
         获取视频评论数据，每获取一条评论就通过回调函数处理
@@ -1073,53 +1275,49 @@ class WeChatAutomator:
         author_names_set = set()
 
         current_state = OperationState.IDLE # 使用枚举状态替代多个布尔标志
-
-
         contorl_count=0 #第几个控件
+        self.CONTINUE_SRCOLL_CONTORL = {}
         while True:
             try:
+                self.check_and_wait(self.REPLAY_COUNT)
                 """
-                我如果点击了回复按钮，发现回复按钮不可见了，就往上滚动，如果点了回复按钮，回复还在可见区域，就往下滚动
-                """
-                """
-                折叠评论一次是展开10条，
-                1.出现编辑的位置的前前前兄弟节点，都不用滚动，
-                2.有的时候不是10条，有的比如说有3条回复，就会跳转到展开评论的最后一个评论出现编辑
+                流程
+                1.我先检查非空控件是否可见
+                2.然后不可见就滚动
+                3.检查空控件
                 """
                 if temp_control is None:
                     library_logger.debug(f"没有更多评论了")
                     break  # 没有更多控件，退出循环
+
                 #滚动屏幕
 
-
                 # 只有在空闲状态时才获取新控件
-                if current_state == OperationState.IDLE:
-                    pass
-                    #library_logger.debug(f"空闲时才滚动屏幕")s
+                # if current_state == OperationState.IDLE:
+                #     pass
+                #     #library_logger.debug(f"空闲时才滚动屏幕")s
+                #
+                # # # 非空闲状态，跳过处理继续循环
+                # if current_state != OperationState.IDLE:
+                #     # 非空闲状态，跳过处理继续循环
+                #     library_logger.info(f"当前状态 {current_state.name}，暂停处理新控件")
+                #     if temp_control.Name != "" and (not self.is_control_visible(temp_control)):
+                #         self.scroll_video_comment(self.NEXT_SIBLING)
+                #     continue
 
-
-                # 非空闲状态，跳过处理继续循环
-                if current_state != OperationState.IDLE:
-                    # 非空闲状态，跳过处理继续循环
-                    library_logger.info(f"当前状态 {current_state.name}，暂停处理新控件")
-                    continue
                 #library_logger.debug(f"第{contorl_count+1}个控件: {temp_control}")
                 if temp_control.Name != "":
-                    if not self.is_control_visible(temp_control):
-                        self.scroll_video_comment(self.NEXT_SIBLING)
-
-                    # 检查控件是否在屏幕内
                     temp_next_control = self.get_next_control_safe(temp_control)
                     temp_next_next_control = self.get_next_control_safe(temp_next_control)
-                    library_logger.debug(f"第{sum_comment_count + 1}条评论，当前控件temp_control: {temp_control}")
-                    library_logger.debug(f"第{sum_comment_count + 1}条评论，下一个控件temp_next_control: {temp_next_control}")
-                    library_logger.debug(f"第{sum_comment_count + 1}条评论，下下一个控件temp_next_next_control: {temp_next_next_control}")
+                    self.control_srcoll(temp_control,temp_next_control,temp_next_next_control,sum_comment_count)#控制屏幕滚动的函数
+
                     if temp_control.Name == "作者" and temp_next_control.Name != "" and temp_next_next_control.Name != "":
                         # 处理作者评论
                         required_comment_data = self.item_comment_func(temp_control)
                         library_logger.debug(f"author_names_set{author_names_set},第{sum_comment_count + 1}条评论，作者评论: {required_comment_data},是否包含关键字{self.COMMENT_KEY},{self.comment_content_key(required_comment_data)}")
 
-                        if (required_comment_data['comment_author_name'] not in author_names_set) and (self.comment_content_key(required_comment_data)):
+                        if (required_comment_data['comment_author_name'] not in author_names_set) and (self.comment_content_key(required_comment_data)) and self.filter_required_comment_data(required_comment_data):
+                            library_logger.success(f"第{sum_comment_count + 1}条评论，作者评论: {required_comment_data}可以回复，符合条件{self.filter_required_comment_data(required_comment_data)},当前评论{self.REPLAY_COUNT+1}个")
                             # 标记状态为回复中
                             current_state = OperationState.REPLYING
 
@@ -1128,6 +1326,7 @@ class WeChatAutomator:
 
                             # 标记状态为关注中
                             current_state = OperationState.FOLLOWING
+                            time.sleep(1)
                             # 关注用户
                             self.guanzhu_func(temp_control)
 
@@ -1142,17 +1341,19 @@ class WeChatAutomator:
                                     self.comment_callback(required_comment_data, video_data)
                                 except Exception as e:
                                     library_logger.warning(f"评论回调函数执行失败: {e}")
+                            # 回复数量+1
+                            self.REPLAY_COUNT += 1
 
                         temp_control = self.get_next_control_safe(temp_next_next_control)
                     elif temp_next_control.Name != "":
                         # 处理其他用户评论
                         required_comment_data = self.item_comment_func(temp_control)
 
-                        if not (required_comment_data["comment_from"] == "四川" and
-                                any(comment in required_comment_data["comment_content"] for comment in self.COMMENT_LIST)):
-                            library_logger.debug(f"author_names_set{author_names_set},第{sum_comment_count + 1}条评论，他人评论: {required_comment_data}是否包含关键字{self.COMMENT_KEY},{self.comment_content_key(required_comment_data)}")
+                        if not (required_comment_data["comment_from"] == "四川" and any(comment in required_comment_data["comment_content"] for comment in self.COMMENT_LIST)):
+                            library_logger.debug(f"author_names_set{author_names_set},第{sum_comment_count + 1}条评论，他人评论: {required_comment_data}:是否包含关键字{self.COMMENT_KEY},{self.comment_content_key(required_comment_data)},是否符合7天内{self.filter_required_comment_data(required_comment_data)}")
 
-                            if (required_comment_data['comment_author_name'] not in author_names_set) and (self.comment_content_key(required_comment_data)):
+                            if (required_comment_data['comment_author_name'] not in author_names_set) and (self.comment_content_key(required_comment_data)) and self.filter_required_comment_data(required_comment_data):
+                                library_logger.success(f"第{sum_comment_count + 1}条评论，作者评论: {required_comment_data}可以回复，符合条件{self.filter_required_comment_data(required_comment_data)},当前评论{self.REPLAY_COUNT+1}个")
 
                                 # 标记状态为回复中
                                 current_state = OperationState.REPLYING
@@ -1176,7 +1377,8 @@ class WeChatAutomator:
                                         self.comment_callback(required_comment_data, video_data)
                                     except Exception as e:
                                         library_logger.warning(f"评论回调函数执行失败: {e}")
-
+                                # 回复数量+1
+                                self.REPLAY_COUNT += 1
                         #temp_control = temp_next_control
                         temp_control=self.get_next_control_safe(temp_next_control)
                     elif temp_next_control.Name == "" and temp_next_next_control.Name == "":
@@ -1194,10 +1396,10 @@ class WeChatAutomator:
                 else:
                     # 处理空名称控件
                     has_expanded = self.find_and_click_reply_text(temp_control)
-
                     if has_expanded:
                         # 等待评论加载
-                        time.sleep(2)
+                        self.CONTINUE_SRCOLL_CONTORL = {}
+                        time.sleep(1)
                     temp_control = self.get_next_control_safe(temp_control)
 
                 contorl_count+=1
@@ -1208,14 +1410,37 @@ class WeChatAutomator:
                 current_state = OperationState.IDLE
                 # 出错时尝试跳过当前控件
                 temp_control = self.get_next_control_safe(temp_control)
+
+            time.sleep(0.5)
+
     def get_next_control_safe(self,current_control):
         """
         安全地获取下一个兄弟控件，避免在最后一个控件时报错
         """
         try:
+           # library_logger.debug(f"当前控件: {current_control}，查看是")
             next_control = current_control.GetNextSiblingControl()
             if next_control and next_control.Exists():
                 return next_control
+            else:
+                if current_control.ControlTypeName == "GroupControl":
+                    #说明还没滚动到底
+                    library_logger.debug(f"还没滚动到底")
+                    temp_count=0
+                    while True:
+                        if temp_count>15:
+                            break
+                        self.scroll_video_comment(self.NEXT_SIBLING)
+                        next_control = current_control.GetNextSiblingControl()
+                        if next_control and next_control.Exists():
+                            library_logger.success(f"找到下一个兄弟控件: {next_control}")
+                            return next_control
+                        temp_count+=1
+                        time.sleep(0.1)
+                elif current_control.ControlTypeName == "TextControl":
+                    #滚动到最底部了
+                    library_logger.debug(f"滚动到最底部了")
+                library_logger.warning(f"当前控件: {current_control}，没有下一个兄弟控件")
             return None
         except Exception as e:
             library_logger.warning(f"get_next_control_safe获取下一个控件时出错: {e}")
@@ -1363,8 +1588,322 @@ class WeChatAutomator:
 
 
 
+    ##########################################################
+    def find_parent_and_siblings(self,control, max_parent_levels=10, max_siblings=6):
+        """
+        查找控件的父节点及其前后兄弟节点
+        :param control: 目标控件
+        :param max_parent_levels: 最大向上查找的父节点层数
+        :param max_siblings: 前后兄弟节点的最大数量
+        :return: 包含父节点和兄弟节点信息的字典
+        """
+        result = {
+            'target_control': control,
+            'parent_hierarchy': [],
+            'siblings_info': []
+        }
+
+        # 向上查找父节点层级
+        current_parent = control.GetParentControl()
+        level = 1
+
+        while current_parent and level <= max_parent_levels:
+            parent_info = {
+                'level': level,
+                'parent_control': current_parent,
+                'parent_name': current_parent.Name if current_parent else 'Unknown',
+                'parent_class': current_parent.ClassName if current_parent else 'Unknown',
+                'parent_automation_id': current_parent.AutomationId if current_parent else 'Unknown',
+                'previous_siblings': [],
+                'next_siblings': []
+            }
+
+            # 查找前兄弟节点（最多max_siblings个）
+            prev_sibling = current_parent.GetPreviousSiblingControl()
+            prev_count = 0
+            while prev_sibling and prev_count < max_siblings:
+                parent_info['previous_siblings'].append({
+                    'sibling_control': prev_sibling,
+                    'name': prev_sibling.Name if prev_sibling else 'Unknown',
+                    'class_name': prev_sibling.ClassName if prev_sibling else 'Unknown',
+                    'automation_id': prev_sibling.AutomationId if prev_sibling else 'Unknown'
+                })
+                prev_sibling = prev_sibling.GetPreviousSiblingControl()
+                prev_count += 1
+
+            # 查找后兄弟节点（最多max_siblings个）
+            next_sibling = current_parent.GetNextSiblingControl()
+            next_count = 0
+            while next_sibling and next_count < max_siblings:
+                parent_info['next_siblings'].append({
+                    'sibling_control': next_sibling,
+                    'name': next_sibling.Name if next_sibling else 'Unknown',
+                    'class_name': next_sibling.ClassName if next_sibling else 'Unknown',
+                    'automation_id': next_sibling.AutomationId if next_sibling else 'Unknown'
+                })
+                next_sibling = next_sibling.GetNextSiblingControl()
+                next_count += 1
+
+            result['parent_hierarchy'].append(parent_info)
+
+            # 继续向上查找父节点
+            current_parent = current_parent.GetParentControl()
+            level += 1
+
+        return result
+
+    def print_parent_siblings_info(self,control_info):
+        """打印父节点和兄弟节点信息"""
+        print("=" * 60)
+        print("控件父节点及兄弟节点分析结果")
+        print("=" * 60)
+
+        target = control_info['target_control']
+        print(f"目标控件: {target.Name} (Class: {target.ClassName}, ID: {target.AutomationId})")
+        print()
+
+        for parent_info in control_info['parent_hierarchy']:
+            print(f"第 {parent_info['level']} 层父节点:")
+            print(f"  - 名称: {parent_info['parent_name']}")
+            print(f"  - 类名: {parent_info['parent_class']}")
+            print(f"  - AutomationId: {parent_info['parent_automation_id']}")
+
+            # 打印前兄弟节点
+            if parent_info['previous_siblings']:
+                print(f"  - 前 {len(parent_info['previous_siblings'])} 个兄弟节点:")
+                for i, sibling in enumerate(parent_info['previous_siblings'], 1):
+                    print(
+                        f"    {i}. {sibling['name']} (Class: {sibling['class_name']}, ID: {sibling['automation_id']})")
+            else:
+                print("  - 前兄弟节点: 无")
+
+            # 打印后兄弟节点
+            if parent_info['next_siblings']:
+                print(f"  - 后 {len(parent_info['next_siblings'])} 个兄弟节点:")
+                for i, sibling in enumerate(parent_info['next_siblings'], 1):
+                    print(
+                        f"    {i}. {sibling['name']} (Class: {sibling['class_name']}, ID: {sibling['automation_id']})")
+            else:
+                print("  - 后兄弟节点: 无")
+
+            print("-" * 40)
+
+    # 简化版本：只获取特定层级的父节点信息
+    def get_specific_parent_level(self,control, target_level=1):
+        """
+        获取特定层级的父节点信息
+
+        :param control: 目标控件
+        :param target_level: 目标层级（1=直接父节点，2=祖父节点，以此类推）
+        :return: 指定层级的父节点信息，如果不存在返回None
+        """
+        current_parent = control
+        current_level = 0
+
+        while current_parent and current_level < target_level:
+            current_parent = current_parent.GetParentControl()
+            current_level += 1
+
+        if current_parent and current_level == target_level:
+            return {
+                'level': target_level,
+                'parent_control': current_parent,
+                'name': current_parent.Name,
+                'class_name': current_parent.ClassName,
+                'automation_id': current_parent.AutomationId
+            }
+
+        return None
+
+    # 示例1：获取评论控件的父节点和兄弟节点信息
+    def analyze_comment_control(self,edit_control):
+        """分析评论控件的层级结构"""
+        # 原有的分析
+        control_info = self.find_parent_and_siblings(edit_control)
+        self.print_parent_siblings_info(control_info)
+
+        # 新增：分析第2层父节点的兄弟节点
+        second_level_siblings = self.analyze_second_level_parent_siblings(edit_control)
+        self.print_second_level_siblings_info(second_level_siblings)
+
+        # 获取第一个非空前兄弟节点（如果需要）
+        first_prev_sibling = self.get_first_non_empty_sibling(edit_control, 'previous', 0)
+        first_next_sibling = self.get_first_non_empty_sibling(edit_control, 'next', 0)
+
+        if first_prev_sibling:
+            print(f"第一个非空前兄弟节点: {first_prev_sibling.Name}")
+        if first_next_sibling:
+            print(f"第一个非空后兄弟节点: {first_next_sibling.Name}")
+
+        # 返回合并的结果
+        return {
+            'full_hierarchy': control_info,
+            'second_level_siblings': second_level_siblings,
+            'first_previous_sibling': first_prev_sibling,
+            'first_next_sibling': first_next_sibling
+        }
+
+    def analyze_second_level_parent_siblings(self, control, max_siblings=6):
+        """
+        分析控件的第2层父节点的前后兄弟节点
+
+        :param control: 目标控件
+        :param max_siblings: 前后兄弟节点的最大数量，默认为6
+        :return: 包含第2层父节点前后兄弟节点信息的字典
+        """
+        # 获取第2层父节点
+        second_level_parent = self.get_specific_parent_level(control, target_level=2)
+
+        if not second_level_parent:
+            print("未找到第2层父节点")
+            return {
+                'target_control': control,
+                'second_level_parent': None,
+                'previous_siblings': [],
+                'next_siblings': []
+            }
+
+        result = {
+            'target_control': control,
+            'second_level_parent': second_level_parent,
+            'previous_siblings': [],
+            'next_siblings': []
+        }
+
+        parent_control = second_level_parent['parent_control']
+
+        # 查找前兄弟节点（最多max_siblings个非空节点）
+        prev_sibling = parent_control.GetPreviousSiblingControl()
+        prev_count = 0
+
+        while prev_sibling and prev_count < max_siblings:
+            # 检查节点是否非空（根据名称、类名或AutomationId判断）
+            if (prev_sibling.Name or prev_sibling.ClassName or prev_sibling.AutomationId):
+                sibling_info = {
+                    'sibling_control': prev_sibling,
+                    'name': prev_sibling.Name if prev_sibling else 'Unknown',
+                    'class_name': prev_sibling.ClassName if prev_sibling else 'Unknown',
+                    'automation_id': prev_sibling.AutomationId if prev_sibling else 'Unknown'
+                }
+                result['previous_siblings'].append(sibling_info)
+                prev_count += 1
+
+            prev_sibling = prev_sibling.GetPreviousSiblingControl()
+
+        # 查找后兄弟节点（最多max_siblings个非空节点）
+        next_sibling = parent_control.GetNextSiblingControl()
+        next_count = 0
+
+        while next_sibling and next_count < max_siblings:
+            # 检查节点是否非空
+            if (next_sibling.Name or next_sibling.ClassName or next_sibling.AutomationId):
+                sibling_info = {
+                    'sibling_control': next_sibling,
+                    'name': next_sibling.Name if next_sibling else 'Unknown',
+                    'class_name': next_sibling.ClassName if next_sibling else 'Unknown',
+                    'automation_id': next_sibling.AutomationId if next_sibling else 'Unknown'
+                }
+                result['next_siblings'].append(sibling_info)
+                next_count += 1
+
+            next_sibling = next_sibling.GetNextSiblingControl()
+
+        return result
+
+    def get_first_non_empty_sibling(self, control, direction='previous', sibling_index=0):
+        """
+        获取指定方向的第一个非空兄弟节点
+
+        :param control: 目标控件
+        :param direction: 方向，'previous'表示前兄弟节点，'next'表示后兄弟节点
+        :param sibling_index: 兄弟节点索引，0表示第一个
+        :return: 兄弟节点控件，如果不存在返回None
+        """
+        siblings_info = self.analyze_second_level_parent_siblings(control)
+
+        if direction == 'previous':
+            siblings_list = siblings_info['previous_siblings']
+        else:
+            siblings_list = siblings_info['next_siblings']
+
+        if sibling_index < len(siblings_list):
+            return siblings_list[sibling_index]['sibling_control']
+
+        return None
+
+    def print_second_level_siblings_info(self, siblings_info):
+        """打印第2层父节点的兄弟节点信息"""
+        print("=" * 60)
+        print("第2层父节点兄弟节点分析结果")
+        print("=" * 60)
+
+        target = siblings_info['target_control']
+        print(f"目标控件: {target.Name} (Class: {target.ClassName}, ID: {target.AutomationId})")
+        print()
+
+        second_parent = siblings_info['second_level_parent']
+        if second_parent:
+            print(f"第2层父节点:")
+            print(f"  - 名称: {second_parent['name']}")
+            print(f"  - 类名: {second_parent['class_name']}")
+            print(f"  - AutomationId: {second_parent['automation_id']}")
+            print()
+
+            # 打印前兄弟节点
+            if siblings_info['previous_siblings']:
+                print(f"前 {len(siblings_info['previous_siblings'])} 个非空兄弟节点:")
+                for i, sibling in enumerate(siblings_info['previous_siblings'], 1):
+                    print(f"  {i}. {sibling['name']} (Class: {sibling['class_name']}, ID: {sibling['automation_id']})")
+            else:
+                print("前兄弟节点: 无")
+
+            print()
+
+            # 打印后兄弟节点
+            if siblings_info['next_siblings']:
+                print(f"后 {len(siblings_info['next_siblings'])} 个非空兄弟节点:")
+                for i, sibling in enumerate(siblings_info['next_siblings'], 1):
+                    print(f"  {i}. {sibling['name']} (Class: {sibling['class_name']}, ID: {sibling['automation_id']})")
+            else:
+                print("后兄弟节点: 无")
+        else:
+            print("未找到第2层父节点")
+
+        print("=" * 60)
+    """
+    1.查找编辑的兄弟节点的下一个节点，并记录存下来，然后遍历到这个节点的时候，再进行判断是否可见，并进行滚动
+    2.判断是否为空，如果为空，
+    """
+    ##########################################################
 
 
+    def continue_control_config(self,first_next):
+        """
+        需要跳过滚动控件配置
+        :return:
+        """
+        self.CONTINUE_SRCOLL_CONTORL.clear()
+        continue_control = first_next
+        continue_control_next = self.get_next_control_safe(continue_control)
+        continue_control_next_next = self.get_next_control_safe(continue_control_next)
+        self.CONTINUE_SRCOLL_CONTORL["continue_control"] = continue_control
+        self.CONTINUE_SRCOLL_CONTORL["continue_control_next"] = continue_control_next
+        self.CONTINUE_SRCOLL_CONTORL["continue_control_next_next"] = continue_control_next_next
+        if continue_control.Name == "作者" and continue_control_next.Name != "" and continue_control_next_next.Name == "":
+            self.CONTINUE_SRCOLL_CONTORL["name"] = self.cat_author_name(continue_control)
+            self.CONTINUE_SRCOLL_CONTORL["from"] = continue_control_next.Name
+            self.CONTINUE_SRCOLL_CONTORL["date"] = continue_control_next_next.Name
+            self.CONTINUE_SRCOLL_CONTORL["mode"] = "1"
+        elif continue_control_next.Name != "":
+            self.CONTINUE_SRCOLL_CONTORL["name"] = self.cat_author_name(continue_control)
+            self.CONTINUE_SRCOLL_CONTORL["from"] = continue_control.Name
+            self.CONTINUE_SRCOLL_CONTORL["date"] = continue_control_next.Name
+            self.CONTINUE_SRCOLL_CONTORL["mode"] = "2"
+        elif continue_control_next.Name == "" and continue_control_next_next.Name == "":
+            self.CONTINUE_SRCOLL_CONTORL["name"] = self.cat_author_name(continue_control)
+            self.CONTINUE_SRCOLL_CONTORL["date"] = continue_control.Name
+            self.CONTINUE_SRCOLL_CONTORL["from"] = ""
+            self.CONTINUE_SRCOLL_CONTORL["mode"] = "3"
 
 
     def replay_click(self,control):
@@ -1375,6 +1914,20 @@ class WeChatAutomator:
         """
         # 使用复杂条件查找并执行操作
         edit_control=self.find_and_perform_action(control)
+        library_logger.debug(f"edit_control:{edit_control}")
+        # self.analyze_comment_control(edit_control)
+        # siblings_info = self.analyze_second_level_parent_siblings(edit_control)
+        #library_logger.debug(f"siblings_info:{siblings_info}")
+        try:
+            first_next = self.get_first_non_empty_sibling(edit_control, 'next', 0)
+            library_logger.debug(f"first_next:{first_next}")
+            if first_next is None:
+                library_logger.warning(f"没有找到第一个非空兄弟节点{first_next}")
+            else:
+                self.continue_control_config(first_next)
+        except Exception as e:
+            library_logger.error(f"查找编辑框下边的一个控件出现错误: {e}")
+        time.sleep(0.5)
         if edit_control:
             huifu_button=auto.TextControl(searchFromControl=edit_control.GetParentControl(),
                                           Name="回复",
@@ -1664,13 +2217,8 @@ class WeChatAutomator:
             if model=="2":
                 #自己刚评论的，只有名字，时间，内容
                 required_comment_data["comment_create_time"] = self.WeChat_VideoData_utils.format_time(temp_control.Name)
-                comment_author_name_str = ""
-                comment_author_name = temp_control.GetPreviousSiblingControl().GetChildren()
-                for child in comment_author_name:
-                    if child.ControlTypeName == "TextControl":
-                        comment_author_name_str += child.Name
+                comment_author_name_str =self.cat_author_name(temp_control)
                 required_comment_data["comment_author_name"] = comment_author_name_str
-
                 content = temp_control.GetNextSiblingControl().GetChildren()
                 content_str = ""
                 for child in content:
@@ -1679,22 +2227,15 @@ class WeChatAutomator:
                 required_comment_data["comment_content"] = content_str
             else:
                 #别人评论的，包括作者评论的
-                comment_author_name_str = ""
-                comment_author_name = temp_control.GetPreviousSiblingControl().GetChildren()
-                library_logger.debug(f"comment_author_name: {comment_author_name}")
-                for child in comment_author_name:
-                    if child.ControlTypeName == "TextControl":
-                        comment_author_name_str += child.Name
-
+                comment_author_name_str =self.cat_author_name(temp_control)
                 content = temp_control.GetNextSiblingControl().GetNextSiblingControl().GetChildren()
                 content_str = ""
                 for child in content:
-                    library_logger.debug(f"child: {child}的控件类型是: {child.ControlTypeName}")
+                    #library_logger.debug(f"child: {child}的控件类型是: {child.ControlTypeName}")
                     if child.ControlTypeName == "TextControl":
                         content_str += child.Name
                     elif child.ControlTypeName=="HyperlinkControl":
                         content_str += child.Name
-
                 required_comment_data["comment_from"]=temp_control.Name
                 required_comment_data["comment_create_time"] = self.WeChat_VideoData_utils.format_time(temp_control.GetNextSiblingControl().Name)
                 required_comment_data["comment_author_name"] =comment_author_name_str
@@ -1721,16 +2262,16 @@ class WeChatAutomator:
         def wrapper(*args, **kwargs):
             stack = traceback.extract_stack()
             caller = stack[-2]
-            print(f"{func.__name__} called by: {caller.filename} at line {caller.lineno}")
+            #print(f"{func.__name__} called by: {caller.filename} at line {caller.lineno}")
             return func(*args, **kwargs)
 
         return wrapper
 
     @log_caller
     def scroll_video_comment(self,next_sibling,model: str = "down"):
+        library_logger.debug(f"滚动屏幕")
         try:
             scroll_container = auto.DocumentControl(searchDepth=8, Name=next_sibling.Name)  # 根据你的查找条件调整
-
             if scroll_container.Exists():
                 rect = scroll_container.BoundingRectangle
                 if rect.width() > 0 and rect.height() > 0:
@@ -1747,12 +2288,14 @@ class WeChatAutomator:
                         auto.WheelUp(waitTime=self.scroll_video_comment_time)
                     # 模拟鼠标滚轮向下滚动
                     #auto.WheelDown(waitTime=self.scroll_video_comment_time)  # waitTime控制滚动间隔[1](@ref)
-                    library_logger.info("单个视频获取评论-模拟鼠标滚轮向下滚动成功")
+                    #library_logger.info("单个视频获取评论-模拟鼠标滚轮向下滚动成功")
                 else:
-                    library_logger.info("单个视频获取评论-文档控件边界矩形无效")
+                    pass
+                    #library_logger.info("单个视频获取评论-文档控件边界矩形无效")
             else:
-                library_logger.info("单个视频获取评论-未找到指定的文档控件")
-            library_logger.info("单个视频获取评论-未找到可滚动容器")
+                pass
+                #library_logger.info("单个视频获取评论-未找到指定的文档控件")
+            #library_logger.info("单个视频获取评论-未找到可滚动容器")
             return True
 
         except Exception as e:
@@ -1809,14 +2352,27 @@ class WeChatVideoCrawler:
             self.automator.set_comment_callback(callback_func)
         library_logger.info("评论回调函数设置成功。")
 
-    def crawl(self, search_keyword:str, comment_key:list[str]=None,skip_comment:bool=False,comment_list:list[str]=None):
+    def crawl(self,
+              search_keyword:str,
+              comment_datetime: str,
+              comment_key:list[str]=None,
+              skip_comment:bool=False,
+              comment_list:list[str]=None,
+              comment_day: str = "7",
+              Interval_count: int = 1,
+              Interval_minutes: int = 5):
         """
         执行视频号数据爬取的主要方法。
 
         Args:
             search_keyword (str): 要在视频号中搜索的关键字。
             skip_comment (bool): 是否跳过评论获取。默认为 False。False就是跳过评论，不抓取评论，True就是要评论，不跳过
+            comment_key (list): 评论中带这些关键字
             comment_list (list): 回复的内容,随机或者按顺序
+            comment_day (str): 离当前日期的天数
+            comment_datetime (str): 默认为当前日期,可修改为其他日期，格式为2025-9-26 15:15:15
+            Interval_count(int):间隔条数
+            Interval_minutes(int):间隔分钟数 ,里面有个代码*60变成秒的单位
 
         Returns:
             list: 视频数据列表。
@@ -1835,7 +2391,13 @@ class WeChatVideoCrawler:
 
         # 7. 循环并自动滚动获取每个视频的数据
         library_logger.info(f"开始爬取关键词 '{search_keyword}' 的视频数据...")
-        list_data = self.automator.video_list_data(skip_comment=skip_comment,comment_list=comment_list,comment_key=comment_key)
+        list_data = self.automator.video_list_data(skip_comment=skip_comment,
+                                                   comment_key=comment_key,
+                                                   comment_list=comment_list,
+                                                   comment_day=comment_day,
+                                                   comment_datetime=comment_datetime,
+                                                   Interval_count=Interval_count,
+                                                   Interval_seconds=Interval_minutes)
 
         library_logger.info(f"爬取完成！共获取到 {len(list_data)} 个视频的数据。")
         return list_data

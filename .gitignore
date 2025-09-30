@@ -139,3 +139,26 @@ dmypy.json
 cython_debug/
 
 .idea/
+
+# 虚拟环境
+
+
+# 构建输出
+
+
+# 缓存文件
+*.pyc
+
+# 文档构建
+docs/build/
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+
+*.swp
+*.swo
+

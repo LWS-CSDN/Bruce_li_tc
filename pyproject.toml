@@ -27,8 +27,12 @@ dependencies = [
     "opencv-python==4.12.0.88"
 ]
 
-[tool.setuptools.dynamic]
-version = {attr = "bruce_li_tc._version.__version__"}
+
+[project.urls]
+Homepage = "https://github.com/LWS-CSDN/Bruce_li_tc"
+Documentation = "https://github.com/LWS-CSDN/Bruce_li_tc#readme"
+Repository = "https://github.com/LWS-CSDN/Bruce_li_tc"
+Changelog = "https://github.com/LWS-CSDN/Bruce_li_tc/blob/main/CHANGELOG.md"
 
 [build-system]
 requires = ["setuptools>=64.0", "wheel"]
@@ -39,6 +43,21 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "bruce_li_tc.wechatauto.wechat_video_automator.bruce_uiauto" = ["*.png"]
+
+[tool.setuptools_scm]
+write_to = "src/bruce_li_tc/_version.py"
+
+#[tool.setuptools.dynamic]
+#version = {attr = "bruce_li_tc._version.__version__"}
+
+# 代码质量工具配置
+[tool.black]
+line-length = 88
+target-version = ['py38']
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "W503"]
 
 [tool.poetry.build]
 exclude = [

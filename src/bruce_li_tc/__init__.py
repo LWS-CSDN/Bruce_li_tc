@@ -1,5 +1,20 @@
+"""
+1.python -m build
+2.在Windows命令提示符中：
+set PYTHONUTF8=1
+twine upload dist/*
+
+或者在PowerShell中：
+$env:PYTHONUTF8=1
+twine upload dist/*
 
 
+1.django和fastapi的中间件
+2.路由分发vs
+3.堆栈分析
+4.__slot__性能优化
+
+"""
 
 
 """
@@ -9,6 +24,7 @@ bruce_li_tc - Bruce Li 的技术工具集合
 1. bruce_c: C语言交互工具
 2. bruce_network: 网络工具
 3. bruce_tools: 通用工具
+
 
 """
 
