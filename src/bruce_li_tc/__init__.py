@@ -37,6 +37,7 @@ from .bruce_design_patterns import *
 from .bruce_gui_tool import *
 from .bruce_crawler import *
 from .wechatauto import *
+from ._version import __version__
 
-
+__version__ = __version__
 
