@@ -1,11 +1,41 @@
-# 变更日志
+# 打包日志
+```bash
+git tag | ForEach-Object { git tag -d $_ }#删除本地标签
+```
+```bash
+# 在项目根目录执行
+git tag v0.7.5 -m "Release version 0.7.5"
+git push origin v0.7.5
+```
 
-## [v0.8.0] - 版本发布
+## [v0.7.5] - ai_search包
 ### 新增功能
-- 描述新功能...
+- 百度模型和星火模型API调用
+```python
+from ai_search import model_factory
+# 百度模型 - 只需要提供api_key，base_url可选
+baidu_model = model_factory.create(
+    "baidu", 
+    api_key=""
+    # base_url 不填就是默认的 "https://qianfan.baidubce.com"
+)
 
-### 修复问题  
-- 修复的问题...
+# 星火模型 - 提供必要的认证信息，其他参数可选
+spark_model = model_factory.create(
+    "spark",
+    api_password="vInpWqMuajMabVYwCQWB:KahUcxTGGdmoGOGtaJdO",
+    sparkai_app_id="f4081d94",
+    sparkai_api_key="d5d3f57ed4225fe4d24c3206655b661b",
+    sparkai_api_secret="NmRkMmU1MDk0OGVlNzA4YTNjOGFiZWM0",
+    sparkai_domain="lite"
+    # base_url 和 sparkai_url 不填就是默认值
+)
+
+# 使用模型
+result1 = baidu_model.search("关键词")
+result2 = spark_model.search("关键词")
+```
+
 
 # 变更日志
 ## [0.7.4] - wechatauto包
