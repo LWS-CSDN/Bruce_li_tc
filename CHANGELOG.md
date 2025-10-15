@@ -8,7 +8,7 @@ git tag v0.7.5 -m "Release version 0.7.5"
 git push origin v0.7.5
 ```
 
-## [v0.7.5] - ai_search包
+## [v0.7.5] - ai_search包更新
 ### 新增功能
 - 百度模型和星火模型API调用
 ```python
