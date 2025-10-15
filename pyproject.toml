@@ -44,3 +44,5 @@ where = ["src"]
 
 [tool.setuptools_scm]
 write_to = "src/bruce_li_tc/_version.py"
+# 禁止为发布版本生成本地版本标识
+local_scheme = "no-local-version"
